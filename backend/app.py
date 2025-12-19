@@ -9,9 +9,13 @@ from db import mensajes_col
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "https://silent-drop-b6m6pt7qm-arielangulos-projects.vercel.app"}}, 
-     supports_credentials=True, 
-     methods=["GET", "POST", "DELETE", "OPTIONS"])
+CORS(
+    app,
+    resources={r"/*": {"origins": ["http://localhost:5173", "https://buzon-anonimo.vercel.app"]}},
+    supports_credentials=True,
+    methods=["GET", "POST", "DELETE", "OPTIONS"]
+)
+
 
 # 🔐 Configuración de seguridad
 key = os.getenv("FERNET_KEY")

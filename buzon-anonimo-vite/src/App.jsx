@@ -159,7 +159,7 @@ export default function App() {
                 <div className="text-sm text-gray-400">Mensajes Total</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-pink-400">ε=3600</div>
+                <div className="text-3xl font-bold text-pink-400">ε=1.0</div>
                 <div className="text-sm text-gray-400">Epsilon</div>
               </div>
               <div className="text-center">
