@@ -9,12 +9,15 @@ from db import mensajes_col
 load_dotenv()  # CARGA .env
 
 app = Flask(__name__)
-# ⚡ Configuración completa de CORS
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True, methods=["GET","POST","DELETE","OPTIONS"])
+
+# ⚡ Configuración CORS para tu frontend en Vercel
+CORS(app, resources={r"/*": {"origins": "https://silent-drop-b6m6pt7qm-arielangulos-projects.vercel.app"}}, supports_credentials=True, methods=["GET","POST","DELETE","OPTIONS"])
 
 # 🔐 Llave desde ENV
-key = os.getenv("FERNET_KEY").encode()
-cipher = Fernet(key)
+key = os.getenv("FERNET_KEY")
+if not key:
+    raise ValueError("FERNET_KEY no definido en las variables de entorno")
+cipher = Fernet(key.encode())
 
 EPSILON = float(os.getenv("EPSILON", 1.0))
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", 5))
@@ -44,35 +47,53 @@ def procesar_mensaje(mensaje):
 
     return mensajes_guardados
 
+#  Rutas
 @app.route("/mensajes", methods=["POST"])
 def recibir_mensaje():
-    mensaje = request.json.get("mensaje")
-    if not mensaje:
-        return jsonify({"error": "Mensaje vacío"}), 400
+    try:
+        data = request.get_json(silent=True) or {}
+        mensaje = data.get("mensaje")
+        if not mensaje:
+            return jsonify({"error": "Mensaje vacío"}), 400
 
-    guardados = procesar_mensaje(mensaje)
+        guardados = procesar_mensaje(mensaje)
 
-    return jsonify({
-        "status": "Mensaje recibido",
-        "procesados": len(guardados),
-        "pendientes": len(batch_mensajes)
-    })
+        return jsonify({
+            "status": "Mensaje recibido",
+            "procesados": len(guardados),
+            "pendientes": len(batch_mensajes)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/mensajes/procesados", methods=["GET"])
 def obtener_mensajes():
-    datos = []
-    for doc in mensajes_col.find({}, {"_id": 0}):
-        datos.append(doc)
-    return jsonify(datos)
+    try:
+        datos = []
+        for doc in mensajes_col.find({}, {"_id": 0}):
+            datos.append(doc)
+        return jsonify(datos)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/mensajes/eliminar", methods=["DELETE", "OPTIONS"])
 def eliminar_mensajes():
     if request.method == "OPTIONS":
-        # 👈 Respuesta para preflight
+       
         return '', 200
-    mensajes_col.delete_many({})
-    batch_mensajes.clear()  # Limpiar batch también
-    return jsonify({"status": "Mensajes eliminados"})
+    try:
+        mensajes_col.delete_many({})
+        batch_mensajes.clear()
+        return jsonify({"status": "Mensajes eliminados"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# 🔹 Manejo de rutas no encontradas
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({"error": "Ruta no encontrada"}), 404
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # ⚡ Para Render usa host='0.0.0.0' y puerto por defecto de Render
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
