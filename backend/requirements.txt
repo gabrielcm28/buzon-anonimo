@@ -1,5 +1,6 @@
 flask
 flask-cors
+pymongo
 cryptography
 diffprivlib
-sqlalchemy
+python-dotenv
