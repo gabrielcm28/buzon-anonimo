@@ -4,13 +4,13 @@ from cryptography.fernet import Fernet
 from diffprivlib.mechanisms import Laplace
 from dotenv import load_dotenv
 import random, time, os
-
 from db import mensajes_col
 
 load_dotenv()  # CARGA .env
 
 app = Flask(__name__)
-CORS(app)
+# ⚡ Configuración completa de CORS
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True, methods=["GET","POST","DELETE","OPTIONS"])
 
 # 🔐 Llave desde ENV
 key = os.getenv("FERNET_KEY").encode()
@@ -29,7 +29,7 @@ def procesar_mensaje(mensaje):
 
     if len(batch_mensajes) >= BATCH_SIZE:
         random.shuffle(batch_mensajes)
-        lap = Laplace(epsilon=EPSILON, sensitivity=1.0)
+        lap = Laplace(epsilon=EPSILON, sensitivity=3600)
 
         for m in batch_mensajes:
             tiempo_ruidoso = lap.randomise(time.time())
@@ -54,7 +54,8 @@ def recibir_mensaje():
 
     return jsonify({
         "status": "Mensaje recibido",
-        "procesados": len(guardados)
+        "procesados": len(guardados),
+        "pendientes": len(batch_mensajes)
     })
 
 @app.route("/mensajes/procesados", methods=["GET"])
@@ -63,6 +64,15 @@ def obtener_mensajes():
     for doc in mensajes_col.find({}, {"_id": 0}):
         datos.append(doc)
     return jsonify(datos)
+
+@app.route("/mensajes/eliminar", methods=["DELETE", "OPTIONS"])
+def eliminar_mensajes():
+    if request.method == "OPTIONS":
+        # 👈 Respuesta para preflight
+        return '', 200
+    mensajes_col.delete_many({})
+    batch_mensajes.clear()  # Limpiar batch también
+    return jsonify({"status": "Mensajes eliminados"})
 
 if __name__ == "__main__":
     app.run(debug=True)
