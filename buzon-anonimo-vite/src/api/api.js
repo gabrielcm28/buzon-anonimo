@@ -1,5 +1,6 @@
-const API_URL = "http://127.0.0.1:5000";
+const API_URL = "https://buzon-anonimo.onrender.com";
 
+  
 export async function sendMessage(texto) {
   const res = await fetch(`${API_URL}/mensajes`, {
     method: "POST",
